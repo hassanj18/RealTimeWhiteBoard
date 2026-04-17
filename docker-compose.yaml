@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+
+  # 🧭 API Gateway
+
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:latest
+    container_name: api-gateway
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - auth-service
+      - board-service
+    networks:
+      - app-network
+
+  # 🔐 Auth Service
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    environment:
+      PORT: "3001"
+      MONGODB_URI: "mongodb://host.docker.internal:27017/authDb"
+      ACCESS_TOKEN_SECRET: "change-me-access"
+      REFRESH_TOKEN_SECRET: "change-me-refresh"
+      ACCESS_TOKEN_TTL: "15m"
+      REFRESH_TOKEN_TTL: "7d"
+      COOKIE_SECURE: "false"
+      COOKIE_SAMESITE: "strict"
+      CORS_ORIGIN: "http://localhost:3000"
+
+    networks:
+      - app-network
+
+  # 📦 Board Service
+  board-service:
+    build: ./board-service
+    container_name: board-service
+    environment:
+      PORT: "3029"
+      MONGODB_URI: "mongodb://host.docker.internal:27017/boardDb"
+    networks:
+      - app-network
+
+
+networks:
+  app-network:
+    driver: bridge
