@@ -22,6 +22,7 @@ services:
     depends_on:
       - auth-service
       - board-service
+      - action-service
     networks:
       - app-network
 
@@ -42,17 +43,67 @@ services:
 
     networks:
       - app-network
+    depends_on:
+      - mongo
 
   # 📦 Board Service
   board-service:
     build: ./board-service
     container_name: board-service
+    ports:
+      - "3029:3029"
     environment:
       PORT: "3029"
       MONGODB_URI: "mongodb://host.docker.internal:27017/boardDb"
+      KAFKA_BROKERS: "kafka:9092"
+    depends_on:
+      - kafka
+      - mongo
     networks:
       - app-network
 
+  #  Action Service
+  action-service:
+    build: ./action-service
+    container_name: action-service
+    ports:
+      - "3035:3035"
+    environment:
+      PORT: "3035"
+      WS_PATH: "/ws"
+      ACCESS_TOKEN_SECRET: "change-me-access"
+      KAFKA_BROKERS: "kafka:9092"
+      KAFKA_CLIENT_ID: "action-service"
+      KAFKA_ACTION_TOPIC: "actions"
+      ACTIONS_HTTP_BASE_URL: "http://board-service:3029"
+    depends_on:
+      - kafka
+      - board-service
+    networks:
+      - app-network
+
+
+  # 📨 Kafka Broker
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
+
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+
+    networks:
+      - app-network
 
 networks:
   app-network:

@@ -26,4 +26,4 @@ COPY --from=build /app/dist ./dist
 EXPOSE 3001
 
 # Start app
-CMD ["node", "dist/infrastructure/server.js"]x 
+CMD ["node", "dist/infrastructure/server.js"] 

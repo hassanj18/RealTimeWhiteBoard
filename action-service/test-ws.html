@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Action Service WebSocket Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        .status { padding: 10px; margin: 10px 0; border-radius: 4px; }
+        .connected { background-color: #d4edda; color: #155724; }
+        .disconnected { background-color: #f8d7da; color: #721c24; }
+        .message { background-color: #e2e3e5; padding: 8px; margin: 5px 0; border-radius: 3px; font-family: monospace; }
+        input, button, select { padding: 8px; margin: 5px; }
+        .form-group { margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Action Service WebSocket Test</h1>
+        
+        <div class="form-group">
+            <label for="token">Access Token:</label>
+            <input type="text" id="token" placeholder="eyJhbGciOiJIUzI1NiIs..." size="50">
+        </div>
+        
+        <div class="form-group">
+            <label for="userId">User ID:</label>
+            <input type="text" id="userId" placeholder="user123" value="test-user-123">
+        </div>
+        
+        <div class="form-group">
+            <label for="boardId">Board ID:</label>
+            <input type="text" id="boardId" placeholder="board456" value="test-board-456">
+        </div>
+        
+        <button onclick="connect()">Connect WebSocket</button>
+        <button onclick="disconnect()">Disconnect</button>
+        <button onclick="clearMessages()">Clear Messages</button>
+        
+        <div id="status" class="status disconnected">Disconnected</div>
+        
+        <h3>Messages:</h3>
+        <div id="messages"></div>
+    </div>
+
+    <script>
+        let ws = null;
+        const statusEl = document.getElementById('status');
+        const messagesEl = document.getElementById('messages');
+        
+        function addMessage(message, type = 'info') {
+            const messageEl = document.createElement('div');
+            messageEl.className = 'message';
+            messageEl.innerHTML = `<strong>${new Date().toLocaleTimeString()}:</strong> ${message}`;
+            messagesEl.appendChild(messageEl);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+        
+        function updateStatus(connected) {
+            if (connected) {
+                statusEl.textContent = 'Connected';
+                statusEl.className = 'status connected';
+            } else {
+                statusEl.textContent = 'Disconnected';
+                statusEl.className = 'status disconnected';
+            }
+        }
+        
+        function connect() {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                addMessage('Already connected');
+                return;
+            }
+            
+            const token = document.getElementById('token').value.trim();
+            const userId = document.getElementById('userId').value.trim();
+            const boardId = document.getElementById('boardId').value.trim();
+            
+            if (!token) {
+                alert('Please enter an access token');
+                return;
+            }
+            
+            if (!userId || !boardId) {
+                alert('Please enter userId and boardId');
+                return;
+            }
+            
+            // Build WebSocket URL with query parameters
+            const wsUrl = `ws://localhost/ws?token=${encodeURIComponent(token)}&userId=${encodeURIComponent(userId)}&boardId=${encodeURIComponent(boardId)}`;
+            
+            addMessage(`Connecting to: ${wsUrl}`);
+            
+            ws = new WebSocket(wsUrl);
+            
+            ws.onopen = function(event) {
+                addMessage('WebSocket connection opened');
+                updateStatus(true);
+            };
+            
+            ws.onmessage = function(event) {
+                try {
+                    const data = JSON.parse(event.data);
+                    addMessage(`Received: ${JSON.stringify(data, null, 2)}`);
+                } catch (e) {
+                    addMessage(`Received (raw): ${event.data}`);
+                }
+            };
+            
+            ws.onerror = function(error) {
+                addMessage(`WebSocket error: ${error}`);
+                updateStatus(false);
+            };
+            
+            ws.onclose = function(event) {
+                addMessage(`WebSocket closed. Code: ${event.code}, Reason: ${event.reason}`);
+                updateStatus(false);
+            };
+        }
+        
+        function disconnect() {
+            if (ws) {
+                ws.close();
+                ws = null;
+                addMessage('WebSocket connection closed manually');
+                updateStatus(false);
+            }
+        }
+        
+        function clearMessages() {
+            messagesEl.innerHTML = '';
+        }
+        
+        // Helper function to get a test token (you'll need to implement this)
+        async function getTestToken() {
+            try {
+                // First, sign up or login to get a token
+                const response = await fetch('http://localhost/auth/login', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        email: 'test@example.com',
+                        password: 'password123'
+                    })
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    const token = data.data.accessToken;
+                    document.getElementById('token').value = token;
+                    addMessage('Got test token from auth service');
+                    return token;
+                } else {
+                    addMessage('Failed to get test token: ' + response.statusText);
+                }
+            } catch (error) {
+                addMessage('Error getting test token: ' + error.message);
+            }
+        }
+        
+        // Add a button to get test token
+        document.addEventListener('DOMContentLoaded', function() {
+            const tokenGroup = document.getElementById('token').parentElement;
+            const getTokenBtn = document.createElement('button');
+            getTokenBtn.textContent = 'Get Test Token';
+            getTokenBtn.onclick = getTestToken;
+            tokenGroup.appendChild(document.createElement('br'));
+            tokenGroup.appendChild(getTokenBtn);
+        });
+    </script>
+</body>
+</html>
