@@ -17,6 +17,8 @@ import { CreateAction } from "../core/usecases/CreateAction";
 import { ListActions } from "../core/usecases/ListActions";
 import { JoinBoardUseCase } from "../core/usecases/JoinBoardUseCase";
 import { HandleUserJoinedEventUseCase } from "../core/usecases/HandleUserJoinedEventUseCase";
+import { HandleUserLeftEventUseCase } from "../core/usecases/HandleUserLeftEventUseCase";
+import { HandleBoardEventUseCase } from "../core/usecases/HandleBoardEventUseCase";
 
 import { ActionController } from "../adapters/in/http/ActionController";
 import { buildActionRoutes } from "../adapters/in/http/routes";
@@ -60,8 +62,10 @@ async function main() {
     wsGateway
   );
 
-  // Setup Kafka consumer for USER_JOINED events (for horizontal scaling)
+  // Setup Kafka consumer for USER_JOINED and USER_LEFT events (for horizontal scaling)
   const handleUserJoinedEvent = new HandleUserJoinedEventUseCase(wsGateway);
+  const handleUserLeftEvent = new HandleUserLeftEventUseCase(wsGateway);
+  const handleBoardEvent = new HandleBoardEventUseCase(wsGateway);
   
   if (kafkaBrokers && kafkaBrokers.length > 0) {
     const kafkaConsumer = new KafkaConsumerAdapter(
@@ -78,11 +82,15 @@ async function main() {
         const event = message as { type: string; payload: unknown };
         if (event.type === "USER_JOINED") {
           await handleUserJoinedEvent.execute(event as any);
+        } else if (event.type === "USER_LEFT") {
+          await handleUserLeftEvent.execute(event as any);
+        } else if (event.type === "BOARD_EVENT") {
+          await handleBoardEvent.execute(event as any);
         }
       });
       
       await kafkaConsumer.start();
-      console.log("[KafkaConsumer] Started consuming USER_JOINED events");
+      console.log("[KafkaConsumer] Started consuming USER_JOINED, USER_LEFT, and BOARD_EVENT events");
     } catch (error) {
       console.warn("[KafkaConsumer] Failed to setup Kafka consumer:", error);
       // Service continues to work even if consumer setup fails
@@ -104,7 +112,7 @@ async function main() {
   app.use(errorHandler);
 
   const server = http.createServer(app);
-  new ActionWebSocketAdapter(server, env.WS_PATH, env.ACCESS_TOKEN_SECRET, joinBoardUseCase, wsGateway);
+  new ActionWebSocketAdapter(server, env.WS_PATH, env.ACCESS_TOKEN_SECRET, joinBoardUseCase, wsGateway, kafkaProducer);
 
   server.listen(env.PORT, "0.0.0.0", () => {
     console.log(`Action service listening on port ${env.PORT}`);
