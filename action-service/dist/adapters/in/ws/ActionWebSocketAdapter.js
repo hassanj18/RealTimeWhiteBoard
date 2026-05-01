@@ -13,12 +13,16 @@ class ActionWebSocketAdapter {
     wsPath;
     accessTokenSecret;
     joinBoardUseCase;
+    wsGateway;
+    kafkaProducer;
     wss;
-    constructor(httpServer, wsPath, accessTokenSecret, joinBoardUseCase) {
+    constructor(httpServer, wsPath, accessTokenSecret, joinBoardUseCase, wsGateway, kafkaProducer) {
         this.httpServer = httpServer;
         this.wsPath = wsPath;
         this.accessTokenSecret = accessTokenSecret;
         this.joinBoardUseCase = joinBoardUseCase;
+        this.wsGateway = wsGateway;
+        this.kafkaProducer = kafkaProducer;
         this.wss = new ws_1.WebSocketServer({ server: httpServer, path: wsPath });
         this.setupHandlers();
     }
@@ -70,6 +74,10 @@ class ActionWebSocketAdapter {
                 socket.socketId = socketId;
                 socket.userId = userId;
                 socket.boardId = boardId;
+                socket.userName = resolvedUserName;
+                // Add socket to the WebSocketGateway's room management
+                this.wsGateway.joinRoom(boardId, socket);
+                console.log(`[WebSocket] Socket ${socketId} added to board ${boardId} room`);
                 console.log(`[WebSocket] Sending USER_JOINED response to client...`);
                 socket.send(JSON.stringify({
                     type: "USER_JOINED",
@@ -89,12 +97,66 @@ class ActionWebSocketAdapter {
                 }));
                 socket.close(1008, err?.message || "Unauthorized");
             }
-            socket.on("close", () => {
-                console.log(`[WebSocket] Connection closed for socket ${socket.socketId || 'unknown'}`);
+            socket.on("close", async () => {
+                const socketId = socket.socketId || 'unknown';
+                const boardId = socket.boardId;
+                const userId = socket.userId;
+                const userName = socket.userName;
+                console.log(`[WebSocket] Connection closed for socket ${socketId}`);
+                if (boardId) {
+                    this.wsGateway.leaveRoom(boardId, socket);
+                    console.log(`[WebSocket] Socket ${socketId} removed from board ${boardId} room`);
+                    // Publish USER_LEFT event to Kafka
+                    if (userId && boardId) {
+                        try {
+                            await this.kafkaProducer.publish("board.events", {
+                                type: "USER_LEFT",
+                                payload: {
+                                    boardId: boardId,
+                                    userId: userId,
+                                    userName: userName || 'Unknown User'
+                                }
+                            });
+                            console.log(`[WebSocket] USER_LEFT event published for user ${userId} on board ${boardId}`);
+                        }
+                        catch (error) {
+                            console.error(`[WebSocket] Failed to publish USER_LEFT event:`, error);
+                        }
+                    }
+                }
             });
             socket.on("message", (raw) => {
                 const msg = raw.toString();
                 console.log(`[WebSocket] Received message from ${socket.socketId || 'unknown'}:`, msg);
+                try {
+                    const parsed = JSON.parse(msg);
+                    if (parsed?.type === "BOARD_EVENT") {
+                        this.kafkaProducer
+                            .publish("board.events", {
+                            type: "BOARD_EVENT",
+                            payload: parsed.payload,
+                        })
+                            .catch((error) => {
+                            console.error("[WebSocket] Failed to publish BOARD_EVENT to Kafka:", error);
+                        });
+                        return;
+                    }
+                    else if (parsed?.type === "ADD_USER") {
+                        console.log(`[WebSocket] Received ADD_USER event from socket ${socket.socketId || 'unknown'}:`, parsed.payload);
+                        this.kafkaProducer
+                            .publish("board.events", {
+                            type: "ADD_USER",
+                            payload: parsed.payload,
+                        })
+                            .catch((error) => {
+                            console.error("[WebSocket] Failed to publish ADD_USER to Kafka:", error);
+                        });
+                        return;
+                    }
+                }
+                catch (_err) {
+                    // ignore JSON parse errors and fall back to echo
+                }
                 socket.send(JSON.stringify({ type: "ECHO", payload: msg }));
             });
         });

@@ -4,30 +4,39 @@ exports.WebSocketGateway = void 0;
 class WebSocketGateway {
     boardSockets = new Map();
     joinRoom(boardId, socket) {
-        const set = this.boardSockets.get(boardId) ?? new Set();
-        set.add(socket);
-        this.boardSockets.set(boardId, set);
+        const userId = socket.userId;
+        if (!userId)
+            return;
+        let boardMap = this.boardSockets.get(boardId);
+        if (!boardMap) {
+            boardMap = new Map();
+            this.boardSockets.set(boardId, boardMap);
+        }
+        boardMap.set(userId, socket);
     }
     leaveRoom(boardId, socket) {
-        const set = this.boardSockets.get(boardId);
-        if (!set)
+        const userId = socket.userId;
+        if (!userId)
             return;
-        set.delete(socket);
-        if (set.size === 0) {
+        const boardMap = this.boardSockets.get(boardId);
+        if (!boardMap)
+            return;
+        boardMap.delete(userId);
+        if (boardMap.size === 0) {
             this.boardSockets.delete(boardId);
         }
     }
     async sendToBoard(boardId, message) {
         console.log(`[WebSocketGateway] Broadcasting to board ${boardId}:`, message);
-        const set = this.boardSockets.get(boardId);
-        if (!set) {
+        const boardMap = this.boardSockets.get(boardId);
+        if (!boardMap) {
             console.log(`[WebSocketGateway] No sockets found for board ${boardId}`);
             return;
         }
         const serialized = JSON.stringify(message);
         let sentCount = 0;
         let totalCount = 0;
-        for (const socket of set) {
+        for (const socket of boardMap.values()) {
             totalCount++;
             if (socket.readyState === socket.OPEN) {
                 socket.send(serialized);
@@ -39,8 +48,25 @@ class WebSocketGateway {
         }
         console.log(`[WebSocketGateway] Message sent to ${sentCount}/${totalCount} sockets in board ${boardId}`);
     }
-    async sendToUser(userId, message) {
-        throw new Error("sendToUser is not implemented in this simple in-memory gateway");
+    async sendToUser(boardId, userId, message) {
+        console.log(`[WebSocketGateway] Sending to user ${userId} in board ${boardId}:`, message);
+        const boardMap = this.boardSockets.get(boardId);
+        if (!boardMap) {
+            console.log(`[WebSocketGateway] No sockets found for board ${boardId}`);
+            return;
+        }
+        const socket = boardMap.get(userId);
+        if (!socket) {
+            console.log(`[WebSocketGateway] No socket found for user ${userId} in board ${boardId}`);
+            return;
+        }
+        if (socket.readyState === socket.OPEN) {
+            socket.send(JSON.stringify(message));
+            console.log(`[WebSocketGateway] Message sent to user ${userId} in board ${boardId}`);
+        }
+        else {
+            console.log(`[WebSocketGateway] Socket for user ${userId} is not open (state: ${socket.readyState})`);
+        }
     }
 }
 exports.WebSocketGateway = WebSocketGateway;

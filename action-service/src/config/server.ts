@@ -19,6 +19,7 @@ import { JoinBoardUseCase } from "../core/usecases/JoinBoardUseCase";
 import { HandleUserJoinedEventUseCase } from "../core/usecases/HandleUserJoinedEventUseCase";
 import { HandleUserLeftEventUseCase } from "../core/usecases/HandleUserLeftEventUseCase";
 import { HandleBoardEventUseCase } from "../core/usecases/HandleBoardEventUseCase";
+import { HandleJoinBoardRequestUseCase } from "../core/usecases/HandleJoinBoardRequestUseCase";
 
 import { ActionController } from "../adapters/in/http/ActionController";
 import { buildActionRoutes } from "../adapters/in/http/routes";
@@ -66,6 +67,7 @@ async function main() {
   const handleUserJoinedEvent = new HandleUserJoinedEventUseCase(wsGateway);
   const handleUserLeftEvent = new HandleUserLeftEventUseCase(wsGateway);
   const handleBoardEvent = new HandleBoardEventUseCase(wsGateway);
+  const handleJoinBoardRequest = new HandleJoinBoardRequestUseCase(wsGateway);
   
   if (kafkaBrokers && kafkaBrokers.length > 0) {
     const kafkaConsumer = new KafkaConsumerAdapter(
@@ -86,11 +88,13 @@ async function main() {
           await handleUserLeftEvent.execute(event as any);
         } else if (event.type === "BOARD_EVENT") {
           await handleBoardEvent.execute(event as any);
+        } else if (event.type === "JOIN_BOARD_REQUEST") {
+          await handleJoinBoardRequest.execute(event as any);
         }
       });
       
       await kafkaConsumer.start();
-      console.log("[KafkaConsumer] Started consuming USER_JOINED, USER_LEFT, and BOARD_EVENT events");
+      console.log("[KafkaConsumer] Started consuming USER_JOINED, USER_LEFT, BOARD_EVENT, and JOIN_BOARD_REQUEST events");
     } catch (error) {
       console.warn("[KafkaConsumer] Failed to setup Kafka consumer:", error);
       // Service continues to work even if consumer setup fails

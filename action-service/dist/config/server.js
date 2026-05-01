@@ -14,9 +14,14 @@ const KafkaProducerAdapter_1 = require("../adapters/out/kafka/KafkaProducerAdapt
 const NoopKafkaProducer_1 = require("../adapters/out/kafka/NoopKafkaProducer");
 const KafkaActionEventPublisherAdapter_1 = require("../adapters/out/kafka/KafkaActionEventPublisherAdapter");
 const NoopActionEventPublisherAdapter_1 = require("../adapters/out/kafka/NoopActionEventPublisherAdapter");
+const KafkaConsumerAdapter_1 = require("../adapters/out/kafka/KafkaConsumerAdapter");
 const CreateAction_1 = require("../core/usecases/CreateAction");
 const ListActions_1 = require("../core/usecases/ListActions");
 const JoinBoardUseCase_1 = require("../core/usecases/JoinBoardUseCase");
+const HandleUserJoinedEventUseCase_1 = require("../core/usecases/HandleUserJoinedEventUseCase");
+const HandleUserLeftEventUseCase_1 = require("../core/usecases/HandleUserLeftEventUseCase");
+const HandleBoardEventUseCase_1 = require("../core/usecases/HandleBoardEventUseCase");
+const HandleJoinBoardRequestUseCase_1 = require("../core/usecases/HandleJoinBoardRequestUseCase");
 const ActionController_1 = require("../adapters/in/http/ActionController");
 const routes_1 = require("../adapters/in/http/routes");
 const ActionWebSocketAdapter_1 = require("../adapters/in/ws/ActionWebSocketAdapter");
@@ -44,6 +49,39 @@ async function main() {
     const sessionRepo = new InMemorySessionRepository_1.InMemorySessionRepository();
     const wsGateway = new WebSocketGateway_1.WebSocketGateway();
     const joinBoardUseCase = new JoinBoardUseCase_1.JoinBoardUseCase(boardService, sessionRepo, kafkaProducer, wsGateway);
+    // Setup Kafka consumer for USER_JOINED and USER_LEFT events (for horizontal scaling)
+    const handleUserJoinedEvent = new HandleUserJoinedEventUseCase_1.HandleUserJoinedEventUseCase(wsGateway);
+    const handleUserLeftEvent = new HandleUserLeftEventUseCase_1.HandleUserLeftEventUseCase(wsGateway);
+    const handleBoardEvent = new HandleBoardEventUseCase_1.HandleBoardEventUseCase(wsGateway);
+    const handleJoinBoardRequest = new HandleJoinBoardRequestUseCase_1.HandleJoinBoardRequestUseCase(wsGateway);
+    if (kafkaBrokers && kafkaBrokers.length > 0) {
+        const kafkaConsumer = new KafkaConsumerAdapter_1.KafkaConsumerAdapter(kafkaBrokers, env_1.env.KAFKA_CLIENT_ID + "-consumer", env_1.env.KAFKA_CLIENT_ID + "-consumer");
+        try {
+            await kafkaConsumer.connect();
+            await kafkaConsumer.subscribe("board.events");
+            kafkaConsumer.onMessage(async (message) => {
+                const event = message;
+                if (event.type === "USER_JOINED") {
+                    await handleUserJoinedEvent.execute(event);
+                }
+                else if (event.type === "USER_LEFT") {
+                    await handleUserLeftEvent.execute(event);
+                }
+                else if (event.type === "BOARD_EVENT") {
+                    await handleBoardEvent.execute(event);
+                }
+                else if (event.type === "JOIN_BOARD_REQUEST") {
+                    await handleJoinBoardRequest.execute(event);
+                }
+            });
+            await kafkaConsumer.start();
+            console.log("[KafkaConsumer] Started consuming USER_JOINED, USER_LEFT, BOARD_EVENT, and JOIN_BOARD_REQUEST events");
+        }
+        catch (error) {
+            console.warn("[KafkaConsumer] Failed to setup Kafka consumer:", error);
+            // Service continues to work even if consumer setup fails
+        }
+    }
     const app = (0, express_1.default)();
     app.use((0, cors_1.default)({
         origin: (_origin, cb) => cb(null, true),
@@ -55,7 +93,7 @@ async function main() {
     app.use("/actions", (0, authMiddleware_1.authMiddleware)(env_1.env.ACCESS_TOKEN_SECRET), (0, routes_1.buildActionRoutes)(controller));
     app.use(errorHandler_1.errorHandler);
     const server = http_1.default.createServer(app);
-    new ActionWebSocketAdapter_1.ActionWebSocketAdapter(server, env_1.env.WS_PATH, env_1.env.ACCESS_TOKEN_SECRET, joinBoardUseCase);
+    new ActionWebSocketAdapter_1.ActionWebSocketAdapter(server, env_1.env.WS_PATH, env_1.env.ACCESS_TOKEN_SECRET, joinBoardUseCase, wsGateway, kafkaProducer);
     server.listen(env_1.env.PORT, "0.0.0.0", () => {
         console.log(`Action service listening on port ${env_1.env.PORT}`);
         console.log(`WS path: ${env_1.env.WS_PATH}`);
