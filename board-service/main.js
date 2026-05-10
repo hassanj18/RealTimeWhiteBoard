@@ -41,10 +41,17 @@ class Application {
         this.app.use(cors({
             origin: true, // Allow all origins
             credentials: true,
-            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
             allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
         }));
-        this.app.use(authMiddleware("change-me-access"));
+        
+        // Skip auth for OPTIONS requests (preflight)
+        this.app.use((req, res, next) => {
+            if (req.method === 'OPTIONS') {
+                return next();
+            }
+            return authMiddleware("change-me-access")(req, res, next);
+        });
     }
 
     setupDatabase() {
