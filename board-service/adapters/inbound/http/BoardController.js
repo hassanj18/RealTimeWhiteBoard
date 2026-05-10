@@ -165,7 +165,7 @@ class BoardController {
             const { access } = req.body;
 
             const result = await this.changeParticipantAccess.execute(boardId, userId, participantId, access);
-            res.status(200).json(result);
+            res.status(200).json(result.message);
         } catch (err) {
             if (err.message.includes('not found')) {
                 res.status(404).json({ error: err.message });
