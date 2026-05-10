@@ -39,8 +39,10 @@ class Application {
     setupMiddleware() {
         this.app.use(express.json());
         this.app.use(cors({
-            origin: (_origin, cb) => cb(null, true),
+            origin: true, // Allow all origins
             credentials: true,
+            methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
         }));
         this.app.use(authMiddleware("change-me-access"));
     }
@@ -58,18 +60,18 @@ class Application {
     setupDependencies() {
         const boardRepository = new MongooseBoardRepository();
         
+        const kafkaBrokers = process.env.KAFKA_BROKERS || 'kafka:9092';
+        const kafkaProducer = new KafkaProducer(kafkaBrokers, 'board-service');
+        
         const createBoard = new CreateBoard(boardRepository);
         const getUserBoards = new GetUserBoards(boardRepository);
         const deleteBoard = new DeleteBoard(boardRepository);
-        const changeParticipantAccess = new ChangeParticipantAccess(boardRepository);
+        const changeParticipantAccess = new ChangeParticipantAccess(boardRepository, kafkaProducer);
         const getUserAccess = new GetUserAccess(boardRepository);
         const getActiveParticipants = new GetActiveParticipants(boardRepository);
         this.addUserToBoard = new AddUserToBoard(boardRepository);
         this.addParticipantToBoard = new AddParticipantToBoard(boardRepository);
         this.removeUserFromBoard = new RemoveUserFromBoard(boardRepository);
-        
-        const kafkaBrokers = process.env.KAFKA_BROKERS || 'kafka:9092';
-        const kafkaProducer = new KafkaProducer(kafkaBrokers, 'board-service');
         
         const requestBoardAccess = new RequestBoardAccess(boardRepository, kafkaProducer);
         
