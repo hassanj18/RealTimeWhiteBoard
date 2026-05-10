@@ -38,12 +38,6 @@ class Application {
 
     setupMiddleware() {
         this.app.use(express.json());
-        this.app.use(cors({
-            origin: true, // Allow all origins
-            credentials: true,
-            methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-            allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-        }));
         
         // Skip auth for OPTIONS requests (preflight)
         this.app.use((req, res, next) => {
