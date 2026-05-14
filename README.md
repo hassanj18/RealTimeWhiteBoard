@@ -18,14 +18,7 @@ This project is currently under active development and focuses on scalable real-
 ---
 
 ## 🏗️ Architecture Overview
-
-Each service runs independently and communicates through HTTP (and later event streaming via Kafka in future versions).
-Client (React)
-↓
-NGINX API Gateway
-├── /auth → Auth Service
-├── /board → Board Service
-└── /ws → Action Service (WebSocket)
+<img width="672" height="708" alt="image" src="https://github.com/user-attachments/assets/4363fafa-6cc3-47f2-b9f1-2a6f0735e295" />
 ---
 
 ## 📂 Services
@@ -44,6 +37,10 @@ NGINX API Gateway
 - Handles live board updates
 
 ---
+
+## 🏗️ Deployment Overview
+AWS deployment:
+<img width="928" height="697" alt="image" src="https://github.com/user-attachments/assets/579307e7-5c9a-49a6-b3d5-4f7b22da2293" />
 
 ## 🐳 Running the Project
 
