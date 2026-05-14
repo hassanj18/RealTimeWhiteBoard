@@ -39,8 +39,9 @@ This project is currently under active development and focuses on scalable real-
 ---
 
 ## 🏗️ Deployment Overview
-AWS deployment:
-<img width="928" height="697" alt="image" src="https://github.com/user-attachments/assets/579307e7-5c9a-49a6-b3d5-4f7b22da2293" />
+
+###AWS deployment:
+<img width="928" height="697" alt="image" src="https://github.com/user-attachments/assets/e2e733d1-8697-44ea-8168-5cfd59c02748" />
 
 ## 🐳 Running the Project
 
