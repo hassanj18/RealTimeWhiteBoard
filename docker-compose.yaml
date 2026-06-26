@@ -27,6 +27,20 @@ services:
     networks:
       - app-network
 
+  # Frontend
+  frontend:
+    build:
+      context: ./StudTogether-Frontend
+      args:
+        VITE_API_URL: "http://localhost:80"
+        VITE_WS_URL: "ws://localhost:80"
+        VITE_SNAPSHOT_URL: "http://localhost:80"
+    container_name: frontend
+    ports:
+      - "3000:80"
+    networks:
+      - app-network
+
   # 🔐 Auth Service
   auth-service:
     build: ./auth-service

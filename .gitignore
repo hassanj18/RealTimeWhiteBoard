@@ -1,4 +1,5 @@
 .idea/
-StudTogether-Frontend/
 **/bin/
 **/obj/
+**/node_modules/
+**/dist/
