@@ -1,4 +1,4 @@
-# 🧠 Real-Time Whiteboard (Microservices + Hexagonal)(MERN,Redux,Kafka,.NET 10)
+# Real-Time Whiteboard (Microservices + Hexagonal)(MERN,Redux,Kafka,.NET 10)
 
 A **real-time collaborative whiteboard system** built using a microservices architecture.  
 This project is currently under active development and focuses on scalable real-time collaboration using WebSockets, API Gateway routing, and event-driven communication.
@@ -10,7 +10,7 @@ This project is currently under active development and focuses on scalable real-
 - 🔐 Authentication service (user login/register)
 - 📦 Board management service (create & manage boards)
 - ⚡ Real-time action service (WebSockets for live collaboration)
-- 📸 Snapshot Serivice (To save the State of the Board_
+- 📸 Snapshot Serivice (Saves the State of the Boards)
 - 🌐 API Gateway using NGINX
 - 🧩 Microservices-based architecture
 - 📡 Real-time communication (WebSockets + event-driven design)
@@ -26,16 +26,17 @@ This project is currently under active development and focuses on scalable real-
 
 ### 1. Auth Service
 - User authentication
-- JWT-based login system
+- JWT-based auth 
 
 ### 2. Board Service
-- Create and manage boards
-- Access control for boards
+- Creates and manages boards
+- Access control for boards (Active Participants)
 
 ### 3. Action Service
-- WebSocket server
+- WebSocket server 
 - Real-time collaboration (drawing/events)
 - Handles live board updates
+- Designed to be horizentaly Scalable (stateless)
 ### 4. SnapShot Service
 - .NET Worker
 - Continously updates the board States
@@ -43,6 +44,9 @@ This project is currently under active development and focuses on scalable real-
 - React Based Client 
 - Real-time collaboration (drawing/events)
 - Redux For State Management
+### 6. Nginx 
+- Acts as API Gateway for routing
+- Load Balancer
 
 ---
 
