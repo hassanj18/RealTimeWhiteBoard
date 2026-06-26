@@ -9,7 +9,7 @@ const EnvSchema = z.object({
   SESSION_SECRET: z.string().min(16).default("dev-session-secret-please-change"),
   ACCESS_TOKEN_SECRET: z.string().min(16),
   REFRESH_TOKEN_SECRET: z.string().min(16),
-  ACCESS_TOKEN_TTL: z.string().default("15m"),
+  ACCESS_TOKEN_TTL: z.string().default("60m"),
   REFRESH_TOKEN_TTL: z.string().default("7d"),
   COOKIE_SECURE: z.preprocess(
     (v: unknown) => (typeof v === "string" ? v === "true" : v),

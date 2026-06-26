@@ -23,6 +23,7 @@ services:
       - auth-service
       - board-service
       - action-service
+      - snapshot-service
     networks:
       - app-network
 
@@ -35,7 +36,7 @@ services:
       MONGODB_URI: "mongodb://host.docker.internal:27017/authDb"
       ACCESS_TOKEN_SECRET: "change-me-access"
       REFRESH_TOKEN_SECRET: "change-me-refresh"
-      ACCESS_TOKEN_TTL: "15m"
+      ACCESS_TOKEN_TTL: "60m"
       REFRESH_TOKEN_TTL: "7d"
       COOKIE_SECURE: "false"
       COOKIE_SAMESITE: "strict"
@@ -56,6 +57,8 @@ services:
       PORT: "3029"
       MONGODB_URI: "mongodb://host.docker.internal:27017/boardDb"
       KAFKA_BROKERS: "kafka:9092"
+      KAFKA_BOARD_ACTIONS_TOPIC: "boards.actions"
+      KAFKA_BOARD_INFO_TOPIC: "boards.info"
     depends_on:
       - kafka
       - mongo
@@ -75,10 +78,32 @@ services:
       KAFKA_BROKERS: "kafka:9092"
       KAFKA_CLIENT_ID: "action-service"
       KAFKA_ACTION_TOPIC: "actions"
+      KAFKA_BOARD_ACTIONS_TOPIC: "boards.actions"
+      KAFKA_BOARD_INFO_TOPIC: "boards.info"
       ACTIONS_HTTP_BASE_URL: "http://board-service:3029"
     depends_on:
       - kafka
       - board-service
+    networks:
+      - app-network
+
+  # Snapshot Service
+  snapshot-service:
+    build: ./snapshot-service
+    container_name: snapshot-service
+    ports:
+      - "3040:3040"
+    environment:
+      PORT: "3040"
+      MONGODB_URI: "mongodb://mongo:27017/snapshotDb"
+      KAFKA_BROKERS: "kafka:9092"
+      KAFKA_BOARD_ACTIONS_TOPIC: "boards.actions"
+      KAFKA_CONSUMER_GROUP_ID: "snapshot-service"
+      SNAPSHOT_EVENT_THRESHOLD: "500"
+      SNAPSHOT_INTERVAL_SECONDS: "10"
+    depends_on:
+      - kafka
+      - mongo
     networks:
       - app-network
 

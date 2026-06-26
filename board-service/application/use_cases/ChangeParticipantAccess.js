@@ -1,3 +1,5 @@
+const { topicForEventType } = require('../../infrastructure/messaging/kafkaTopics');
+
 class ChangeParticipantAccess {
     constructor(boardRepository, kafkaProducer) {
         this.boardRepository = boardRepository;
@@ -38,7 +40,7 @@ class ChangeParticipantAccess {
             }
         };
         
-        await this.kafkaProducer.publish('board.events', event);
+        await this.kafkaProducer.publish(topicForEventType('BOARD_EVENT'), event);
         
         return { message: 'Participant access changed successfully', board: updatedBoard };
     }

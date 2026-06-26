@@ -12,6 +12,8 @@ const EnvSchema = z.object({
   KAFKA_BROKERS: z.string().optional(),
   KAFKA_CLIENT_ID: z.string().default("action-service"),
   KAFKA_ACTION_TOPIC: z.string().default("actions"),
+  KAFKA_BOARD_ACTIONS_TOPIC: z.string().default("boards.actions"),
+  KAFKA_BOARD_INFO_TOPIC: z.string().default("boards.info"),
 
   ACTIONS_HTTP_BASE_URL: z.string().optional(),
 });

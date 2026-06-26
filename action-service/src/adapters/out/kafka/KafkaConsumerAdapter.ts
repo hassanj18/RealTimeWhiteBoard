@@ -28,16 +28,20 @@ export class KafkaConsumerAdapter implements KafkaConsumerPort {
     }
   }
 
-  async subscribe(topic: string): Promise<void> {
+  async subscribe(topics: string | string[]): Promise<void> {
     if (!this.connected) {
       throw new Error("Consumer must be connected before subscribing");
     }
-    
+
+    const topicList = Array.isArray(topics) ? topics : [topics];
+
     try {
-      await this.consumer.subscribe({ topic, fromBeginning: false });
-      console.log(`[KafkaConsumer] Subscribed to topic: ${topic}`);
+      for (const topic of topicList) {
+        await this.consumer.subscribe({ topic, fromBeginning: false });
+        console.log(`[KafkaConsumer] Subscribed to topic: ${topic}`);
+      }
     } catch (error) {
-      console.error(`[KafkaConsumer] Failed to subscribe to ${topic}:`, error);
+      console.error(`[KafkaConsumer] Failed to subscribe to topics:`, error);
       throw error;
     }
   }

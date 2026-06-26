@@ -8,6 +8,7 @@ const ws_1 = require("ws");
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
 const url_1 = require("url");
 const AppError_1 = require("../../../shared/errors/AppError");
+const kafkaTopics_1 = require("../../../shared/kafkaTopics");
 class ActionWebSocketAdapter {
     httpServer;
     wsPath;
@@ -109,7 +110,7 @@ class ActionWebSocketAdapter {
                     // Publish USER_LEFT event to Kafka
                     if (userId && boardId) {
                         try {
-                            await this.kafkaProducer.publish("board.events", {
+                            await this.kafkaProducer.publish((0, kafkaTopics_1.topicForEventType)("USER_LEFT"), {
                                 type: "USER_LEFT",
                                 payload: {
                                     boardId: boardId,
@@ -132,24 +133,12 @@ class ActionWebSocketAdapter {
                     const parsed = JSON.parse(msg);
                     if (parsed?.type === "BOARD_EVENT") {
                         this.kafkaProducer
-                            .publish("board.events", {
+                            .publish((0, kafkaTopics_1.topicForEventType)("BOARD_EVENT"), {
                             type: "BOARD_EVENT",
                             payload: parsed.payload,
                         })
                             .catch((error) => {
                             console.error("[WebSocket] Failed to publish BOARD_EVENT to Kafka:", error);
-                        });
-                        return;
-                    }
-                    else if (parsed?.type === "ADD_USER") {
-                        console.log(`[WebSocket] Received ADD_USER event from socket ${socket.socketId || 'unknown'}:`, parsed.payload);
-                        this.kafkaProducer
-                            .publish("board.events", {
-                            type: "ADD_USER",
-                            payload: parsed.payload,
-                        })
-                            .catch((error) => {
-                            console.error("[WebSocket] Failed to publish ADD_USER to Kafka:", error);
                         });
                         return;
                     }

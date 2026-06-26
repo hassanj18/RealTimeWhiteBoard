@@ -19,6 +19,7 @@ const RemoveUserFromBoard = require('./application/use_cases/RemoveUserFromBoard
 const RequestBoardAccess = require('./application/use_cases/RequestBoardAccess');
 const KafkaConsumer = require('./infrastructure/messaging/KafkaConsumer');
 const KafkaProducer = require('./infrastructure/messaging/KafkaProducer');
+const { BOARD_INFO_TOPIC } = require('./infrastructure/messaging/kafkaTopics');
 const BoardController = require('./adapters/inbound/http/BoardController');
 
 const boardRoutes = require('./routes');
@@ -127,7 +128,7 @@ class Application {
 
         // Connect and start consuming
         await this.kafkaConsumer.connect();
-        await this.kafkaConsumer.subscribe(['board.events']);
+        await this.kafkaConsumer.subscribe([BOARD_INFO_TOPIC]);
         await this.kafkaConsumer.startConsuming();
     }
 

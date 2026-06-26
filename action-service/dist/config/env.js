@@ -14,6 +14,8 @@ const EnvSchema = zod_1.z.object({
     KAFKA_BROKERS: zod_1.z.string().optional(),
     KAFKA_CLIENT_ID: zod_1.z.string().default("action-service"),
     KAFKA_ACTION_TOPIC: zod_1.z.string().default("actions"),
+    KAFKA_BOARD_ACTIONS_TOPIC: zod_1.z.string().default("boards.actions"),
+    KAFKA_BOARD_INFO_TOPIC: zod_1.z.string().default("boards.info"),
     ACTIONS_HTTP_BASE_URL: zod_1.z.string().optional(),
 });
 exports.env = EnvSchema.parse(process.env);

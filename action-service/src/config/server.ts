@@ -28,6 +28,7 @@ import { WebSocketGateway } from "../adapters/out/ws/WebSocketGateway";
 import { BoardServiceAdapter } from "../adapters/out/http/BoardServiceAdapter";
 import { InMemorySessionRepository } from "../adapters/out/http/InMemorySessionRepository";
 import { authMiddleware } from "../adapters/in/http/middleware/authMiddleware";
+import { BOARD_ACTIONS_TOPIC, BOARD_INFO_TOPIC } from "../shared/kafkaTopics";
 
 async function main() {
   const actionsRepo = new InMemoryActionRepository();
@@ -78,7 +79,7 @@ async function main() {
     
     try {
       await kafkaConsumer.connect();
-      await kafkaConsumer.subscribe("board.events");
+      await kafkaConsumer.subscribe([BOARD_INFO_TOPIC, BOARD_ACTIONS_TOPIC]);
       
       kafkaConsumer.onMessage(async (message: unknown) => {
         const event = message as { type: string; payload: unknown };
@@ -94,7 +95,7 @@ async function main() {
       });
       
       await kafkaConsumer.start();
-      console.log("[KafkaConsumer] Started consuming USER_JOINED, USER_LEFT, BOARD_EVENT, and JOIN_BOARD_REQUEST events");
+      console.log(`[KafkaConsumer] Started consuming from ${BOARD_INFO_TOPIC} and ${BOARD_ACTIONS_TOPIC}`);
     } catch (error) {
       console.warn("[KafkaConsumer] Failed to setup Kafka consumer:", error);
       // Service continues to work even if consumer setup fails

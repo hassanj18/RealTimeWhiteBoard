@@ -6,6 +6,7 @@ import { JoinBoardUseCase } from "../../../core/usecases/JoinBoardUseCase";
 import { AppError } from "../../../shared/errors/AppError";
 import { WebSocketGateway } from "../../out/ws/WebSocketGateway";
 import { KafkaProducerPort } from "../../../core/ports/KafkaProducerPort";
+import { topicForEventType } from "../../../shared/kafkaTopics";
 
 export class ActionWebSocketAdapter {
   private wss: WebSocketServer;
@@ -119,7 +120,7 @@ export class ActionWebSocketAdapter {
           // Publish USER_LEFT event to Kafka
           if (userId && boardId) {
             try {
-              await this.kafkaProducer.publish("board.events", {
+              await this.kafkaProducer.publish(topicForEventType("USER_LEFT"), {
                 type: "USER_LEFT",
                 payload: {
                   boardId: boardId,
@@ -142,7 +143,7 @@ export class ActionWebSocketAdapter {
           const parsed = JSON.parse(msg) as { type?: string; payload?: any };
           if (parsed?.type === "BOARD_EVENT") {
             this.kafkaProducer
-              .publish("board.events", {
+              .publish(topicForEventType("BOARD_EVENT"), {
                 type: "BOARD_EVENT",
                 payload: parsed.payload,
               })

@@ -4,6 +4,7 @@ import { SessionRepositoryPort } from "../ports/SessionRepositoryPort";
 import { KafkaProducerPort } from "../ports/KafkaProducerPort";
 import { WebSocketGatewayPort } from "../ports/WebSocketGatewayPort";
 import { AppError } from "../../shared/errors/AppError";
+import { topicForEventType } from "../../shared/kafkaTopics";
 
 export type JoinBoardCommand = {
   userId: string;
@@ -51,7 +52,7 @@ export class JoinBoardUseCase {
     console.log(`[JoinBoardUseCase] Session stored successfully`);
 
     console.log(`[JoinBoardUseCase] Publishing Kafka event...`);
-    await this.kafka.publish("board.events", {
+    await this.kafka.publish(topicForEventType("USER_JOINED"), {
       type: "USER_JOINED",
       payload: {
         boardId: cmd.boardId,

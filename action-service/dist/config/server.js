@@ -29,6 +29,7 @@ const WebSocketGateway_1 = require("../adapters/out/ws/WebSocketGateway");
 const BoardServiceAdapter_1 = require("../adapters/out/http/BoardServiceAdapter");
 const InMemorySessionRepository_1 = require("../adapters/out/http/InMemorySessionRepository");
 const authMiddleware_1 = require("../adapters/in/http/middleware/authMiddleware");
+const kafkaTopics_1 = require("../shared/kafkaTopics");
 async function main() {
     const actionsRepo = new InMemoryActionRepository_1.InMemoryActionRepository();
     const kafkaBrokers = env_1.env.KAFKA_BROKERS?.split(",").map((s) => s.trim()).filter(Boolean);
@@ -58,7 +59,7 @@ async function main() {
         const kafkaConsumer = new KafkaConsumerAdapter_1.KafkaConsumerAdapter(kafkaBrokers, env_1.env.KAFKA_CLIENT_ID + "-consumer", env_1.env.KAFKA_CLIENT_ID + "-consumer");
         try {
             await kafkaConsumer.connect();
-            await kafkaConsumer.subscribe("board.events");
+            await kafkaConsumer.subscribe([kafkaTopics_1.BOARD_INFO_TOPIC, kafkaTopics_1.BOARD_ACTIONS_TOPIC]);
             kafkaConsumer.onMessage(async (message) => {
                 const event = message;
                 if (event.type === "USER_JOINED") {
@@ -75,7 +76,7 @@ async function main() {
                 }
             });
             await kafkaConsumer.start();
-            console.log("[KafkaConsumer] Started consuming USER_JOINED, USER_LEFT, BOARD_EVENT, and JOIN_BOARD_REQUEST events");
+            console.log(`[KafkaConsumer] Started consuming from ${kafkaTopics_1.BOARD_INFO_TOPIC} and ${kafkaTopics_1.BOARD_ACTIONS_TOPIC}`);
         }
         catch (error) {
             console.warn("[KafkaConsumer] Failed to setup Kafka consumer:", error);

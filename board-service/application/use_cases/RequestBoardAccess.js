@@ -1,3 +1,5 @@
+const { topicForEventType } = require('../../infrastructure/messaging/kafkaTopics');
+
 class RequestBoardAccess {
     constructor(boardRepository, kafkaProducer) {
         this.boardRepository = boardRepository;
@@ -24,7 +26,7 @@ class RequestBoardAccess {
         const ownerId = board.owner;
 
         // Publish the event
-        await this.kafkaProducer.publish('board.events', {
+        await this.kafkaProducer.publish(topicForEventType('JOIN_BOARD_REQUEST'), {
             type: 'JOIN_BOARD_REQUEST',
             payload: {
                 ownerId: ownerId,

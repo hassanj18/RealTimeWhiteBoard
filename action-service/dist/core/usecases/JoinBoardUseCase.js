@@ -2,6 +2,7 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.JoinBoardUseCase = void 0;
 const AppError_1 = require("../../shared/errors/AppError");
+const kafkaTopics_1 = require("../../shared/kafkaTopics");
 class JoinBoardUseCase {
     boardService;
     sessionRepo;
@@ -37,7 +38,7 @@ class JoinBoardUseCase {
         await this.sessionRepo.addSession(session);
         console.log(`[JoinBoardUseCase] Session stored successfully`);
         console.log(`[JoinBoardUseCase] Publishing Kafka event...`);
-        await this.kafka.publish("board.events", {
+        await this.kafka.publish((0, kafkaTopics_1.topicForEventType)("USER_JOINED"), {
             type: "USER_JOINED",
             payload: {
                 boardId: cmd.boardId,
